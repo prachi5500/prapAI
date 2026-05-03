@@ -36,7 +36,14 @@ export const analyzeResume = async (req, res) => {
       {
         role: "system",
         content: `
-Extract structured data from resume.
+Extract structured data from resume and provide ATS score.
+
+Analyze the resume for ATS optimization based on:
+- Clear section headers (Experience, Education, Skills)
+- Keyword optimization for the role
+- Proper formatting and structure
+- Contact information completeness
+- Use of action verbs and quantifiable achievements
 
 Return strictly JSON:
 
@@ -44,7 +51,9 @@ Return strictly JSON:
   "role": "string",
   "experience": "string",
   "projects": ["project1", "project2"],
-  "skills": ["skill1", "skill2"]
+  "skills": ["skill1", "skill2"],
+  "atsScore": number,
+  "atsFeedback": "string with specific suggestions for ATS improvement"
 }
 `
       },
@@ -67,7 +76,9 @@ Return strictly JSON:
       experience: parsed.experience,
       projects: parsed.projects,
       skills: parsed.skills,
-      resumeText
+      resumeText,
+      atsScore: parsed.atsScore,
+      atsFeedback: parsed.atsFeedback
     });
 
   } catch (error) {

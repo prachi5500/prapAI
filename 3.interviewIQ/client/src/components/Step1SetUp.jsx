@@ -23,6 +23,8 @@ function Step1SetUp({ onStart }) {
     const [projects, setProjects] = useState([]);
     const [skills, setSkills] = useState([]);
     const [resumeText, setResumeText] = useState("");
+    const [atsScore, setAtsScore] = useState(0);
+    const [atsFeedback, setAtsFeedback] = useState("");
     const [analysisDone, setAnalysisDone] = useState(false);
     const [analyzing, setAnalyzing] = useState(false);
 
@@ -44,6 +46,8 @@ function Step1SetUp({ onStart }) {
             setProjects(result.data.projects || []);
             setSkills(result.data.skills || []);
             setResumeText(result.data.resumeText || "");
+            setAtsScore(result.data.atsScore || 0);
+            setAtsFeedback(result.data.atsFeedback || "");
             setAnalysisDone(true);
 
             setAnalyzing(false);
@@ -54,7 +58,26 @@ function Step1SetUp({ onStart }) {
         }
     }
 
+    const handleAddCredits = async () => {
+        try {
+            const result = await axios.post(ServerUrl + "/api/user/add-credits", {}, {withCredentials: true})
+            console.log("Credits added:", result.data)
+            alert("Credits added successfully! You now have " + result.data.credits + " credits.")
+            // Refresh user data to update credits display
+            window.location.reload()
+        } catch (error) {
+            console.error("Error adding credits:", error.response?.data || error.message)
+            alert("Failed to add credits. Please try again.")
+        }
+    }
+
     const handleStart = async () => {
+        if (!userData) {
+            console.error("User not authenticated. Please log in first.")
+            setLoading(false)
+            return
+        }
+        
         setLoading(true)
         try {
            const result = await axios.post(ServerUrl + "/api/interview/generate-questions" , {role, experience, mode , resumeText, projects, skills } , {withCredentials:true}) 
@@ -66,7 +89,13 @@ function Step1SetUp({ onStart }) {
            onStart(result.data)
 
         } catch (error) {
-            console.log(error)
+            console.error("Error details:", error.response?.data || error.message)
+            
+            // Handle insufficient credits error specifically
+            if (error.response?.data?.message === "Not enough credits. Minimum 50 required.") {
+                alert("You don't have enough credits to start an interview. You need at least 50 credits. Please add credits or purchase a plan.")
+            }
+            
             setLoading(false)
         }
     }
@@ -219,6 +248,41 @@ function Step1SetUp({ onStart }) {
                                 <h3 className='text-lg font-semibold text-gray-800'>
                                     Resume Analysis Result</h3>
 
+                                {/* ATS Score Section */}
+                                <div className='bg-white p-4 rounded-lg border border-gray-200'>
+                                    <div className='flex items-center justify-between mb-2'>
+                                        <h4 className='font-semibold text-gray-700'>ATS Score</h4>
+                                        <span className={`text-2xl font-bold ${
+                                            atsScore >= 80 ? 'text-green-600' : 
+                                            atsScore >= 60 ? 'text-yellow-600' : 'text-red-600'
+                                        }`}>
+                                            {atsScore}/100
+                                        </span>
+                                    </div>
+                                    <div className='w-full bg-gray-200 rounded-full h-2 mb-2'>
+                                        <div 
+                                            className={`h-2 rounded-full transition-all duration-300 ${
+                                                atsScore >= 80 ? 'bg-green-600' : 
+                                                atsScore >= 60 ? 'bg-yellow-600' : 'bg-red-600'
+                                            }`}
+                                            style={{ width: `${atsScore}%` }}
+                                        ></div>
+                                    </div>
+                                    <p className='text-sm text-gray-600'>
+                                        {atsScore >= 80 ? 'Excellent ATS optimization!' : 
+                                         atsScore >= 60 ? 'Good ATS compatibility' : 
+                                         'Needs ATS improvements'}
+                                    </p>
+                                </div>
+
+                                {/* ATS Feedback Section */}
+                                {atsFeedback && (
+                                    <div className='bg-blue-50 border border-blue-200 rounded-lg p-4'>
+                                        <h4 className='font-semibold text-blue-800 mb-2'>ATS Optimization Tips</h4>
+                                        <p className='text-sm text-blue-700'>{atsFeedback}</p>
+                                    </div>
+                                )}
+
                                 {projects.length > 0 && (
                                     <div>
                                         <p className='font-medium text-gray-700 mb-1'>
@@ -259,6 +323,16 @@ function Step1SetUp({ onStart }) {
 
 
                         </motion.button>
+
+                        {userData && userData.credits < 50 && (
+                            <motion.button
+                                onClick={handleAddCredits}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.95 }}
+                                className='w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-full text-lg font-semibold transition duration-300 shadow-md mt-3'>
+                                Add Credits (100 credits)
+                            </motion.button>
+                        )}
                     </div>
 
                 </motion.div>
